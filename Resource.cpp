@@ -15,6 +15,7 @@
 #include "StringPool.h"
 #include "WorkQueue.h"
 #include "XMLNode.h"
+#include "RMerge.h"
 
 #if HAVE_PRINTF_ZD
 #  define ZD "%zd"
@@ -1118,12 +1119,58 @@ status_t buildResources(Bundle* bundle, const sp<AaptAssets>& assets, sp<ApkBuil
     ResourceTable::PackageType packageType = ResourceTable::App;
     if (bundle->getBuildSharedLibrary()) {
         packageType = ResourceTable::SharedLibrary;
-    } else if (bundle->getExtending()) {
+    }else if (bundle->getExtending()) {
         packageType = ResourceTable::System;
-    } else if (!bundle->getFeatureOfPackage().isEmpty()) {
+    }else if (!bundle->getFeatureOfPackage().isEmpty()) {
         packageType = ResourceTable::AppFeature;
     }
-
+//else if(!bundle->getApkModule().isEmpty()){
+//        android::String8 apkmoduleVal=bundle->getApkModule();
+//        if(strcmp(apkmoduleVal,"hotel")==0){
+//            packageType=ResourceTable::Hotel;
+//        }else if(strcmp(apkmoduleVal,"flight")==0){
+//            packageType=ResourceTable::Flight;
+//        }else if(strcmp(apkmoduleVal,"myctrip")==0){
+//            packageType=ResourceTable::MyCtrip;
+//        }else if(strcmp(apkmoduleVal,"train")==0){
+//            packageType=ResourceTable::Train;
+//        }else if(strcmp(apkmoduleVal,"schedule")==0){
+//            packageType=ResourceTable::Schedule;
+//        }else if(strcmp(apkmoduleVal,"call")==0){
+//            packageType=ResourceTable::Call;
+//        }else if(strcmp(apkmoduleVal,"voice")==0){
+//            packageType=ResourceTable::Voice;
+//        }else if(strcmp(apkmoduleVal,"search")==0){
+//            packageType=ResourceTable::Search;
+//        }else if(strcmp(apkmoduleVal,"thirdParty")==0){
+//            packageType=ResourceTable::ThirdParty;
+//        }else if(strcmp(apkmoduleVal,"destination")==0){
+//            packageType=ResourceTable::Destination;
+//        }else if(strcmp(apkmoduleVal,"foundation")==0){
+//            packageType=ResourceTable::Foundation;
+//        }else if(strcmp(apkmoduleVal,"container")==0){
+//            packageType=ResourceTable::Container;
+//        }else if(strcmp(apkmoduleVal,"customerservice")==0){
+//            packageType=ResourceTable::CustomerService;
+//        }else if(strcmp(apkmoduleVal,"pay")==0){
+//            packageType=ResourceTable::Pay;
+//        }else if(strcmp(apkmoduleVal,"chat")==0){
+//            packageType=ResourceTable::Chat;
+//        }else if(strcmp(apkmoduleVal,"extend1")==0){
+//            packageType=ResourceTable::Extend1;
+//        }else if(strcmp(apkmoduleVal,"extend2")==0){
+//            packageType=ResourceTable::Extend2;
+//        }else if(strcmp(apkmoduleVal,"extend3")==0){
+//            packageType=ResourceTable::Extend3;
+//        }else if(strcmp(apkmoduleVal,"extend4")==0){
+//            packageType=ResourceTable::Extend4;
+//        }else if(strcmp(apkmoduleVal,"extend5")==0){
+//            packageType=ResourceTable::Extend5;
+//        }else if(strcmp(apkmoduleVal,"extend6")==0){
+//            packageType=ResourceTable::Extend6;
+//        }
+//        
+//    }
     ResourceTable table(bundle, String16(assets->getPackage()), packageType);
     err = table.addIncludedResources(bundle, assets);
     if (err != NO_ERROR) {
@@ -1234,6 +1281,7 @@ status_t buildResources(Bundle* bundle, const sp<AaptAssets>& assets, sp<ApkBuil
     if (layouts != NULL) {
         err = makeFileResources(bundle, assets, &table, layouts, "layout");
         if (err != NO_ERROR) {
+            fprintf(stderr,"error makeFileResources\n");
             hasErrors = true;
         }
     }
@@ -1295,6 +1343,7 @@ status_t buildResources(Bundle* bundle, const sp<AaptAssets>& assets, sp<ApkBuil
                 res = compileResourceFile(bundle, assets, file, it.getParams(), 
                                           (current!=assets), &table);
                 if (res != NO_ERROR) {
+                    fprintf(stderr,"error ResourceDirIterator\n");
                     hasErrors = true;
                 }
             }
@@ -1343,11 +1392,13 @@ status_t buildResources(Bundle* bundle, const sp<AaptAssets>& assets, sp<ApkBuil
                 block.setTo(it.getFile()->getData(), it.getFile()->getSize(), true);
                 checkForIds(src, block);
             } else {
+                fprintf(stderr,"error layouts\n");
                 hasErrors = true;
             }
         }
 
         if (err < NO_ERROR) {
+            fprintf(stderr,"error layouts\n");
             hasErrors = true;
         }
         err = NO_ERROR;
@@ -2554,6 +2605,7 @@ status_t writeResourceSymbols(Bundle* bundle, const sp<AaptAssets>& assets,
     const char* textSymbolsDest = bundle->getOutputTextSymbols();
 
     String8 R("R");
+    char *dest_r_path = NULL;
     const size_t N = assets->getSymbols().size();
     for (size_t i=0; i<N; i++) {
         sp<AaptSymbols> symbols = assets->getSymbols().valueAt(i);
@@ -2589,6 +2641,10 @@ status_t writeResourceSymbols(Bundle* bundle, const sp<AaptAssets>& assets,
         if (bundle->getVerbose()) {
             printf("  Writing symbols for class %s.\n", className.string());
         }
+        long dest_len = strlen(dest.string())+1;
+        dest_r_path = (char *)malloc(dest_len);
+        memset(dest_r_path, '\0', dest_len);
+        strcpy(dest_r_path, dest.string());
 
         fprintf(fp,
             "/* AUTO-GENERATED FILE.  DO NOT MODIFY.\n"
@@ -2636,11 +2692,19 @@ status_t writeResourceSymbols(Bundle* bundle, const sp<AaptAssets>& assets,
             // Add this R.java to the dependency file
             String8 dependencyFile(bundle->getRClassDir());
             dependencyFile.appendPath("R.java.d");
-
             FILE *fp = fopen(dependencyFile.string(), "a");
             fprintf(fp,"%s \\\n", dest.string());
             fclose(fp);
         }
+    }
+    
+    const char *public_r_file_path = bundle->getPublicRPath();
+    if (public_r_file_path != NULL ) {
+        printf("***********Start merge R.java. public=[%s], project=[%s]\n", public_r_file_path, dest_r_path);
+        merge_r_file(public_r_file_path, dest_r_path);
+    }
+    if (dest_r_path != NULL) {
+        free(dest_r_path);
     }
 
     return NO_ERROR;

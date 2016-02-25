@@ -94,7 +94,29 @@ public:
         App,
         System,
         SharedLibrary,
-        AppFeature
+        AppFeature,
+        //Custome Def
+//        Hotel,
+//        Flight,
+//        MyCtrip,
+//        Train,
+//        Schedule,
+//        Call,
+//        Search,
+//        Voice,
+//        Destination,
+//        Pay,
+//        Chat,
+//        CustomerService,
+//        Foundation,
+//        Container,
+//        ThirdParty,
+//        Extend1,
+//        Extend2,
+//        Extend3,
+//        Extend4,
+//        Extend5,
+//        Extend6
     };
 
     class Package;
@@ -234,7 +256,7 @@ public:
                        uint32_t attrType = ResTable_map::TYPE_ANY,
                        const String8* configTypeName = NULL,
                        const ConfigDescription* config = NULL);
-
+    
     status_t assignResourceIds();
     status_t addSymbols(const sp<AaptSymbols>& outSymbols = NULL);
     void addLocalization(const String16& name, const String8& locale, const SourcePos& src);
@@ -544,6 +566,8 @@ public:
     };
 
 private:
+    ssize_t apkStringToInt(const String8& s);
+    uint32_t apkgetHex(char c, bool* outError);
     void writePublicDefinitions(const String16& package, FILE* fp, bool pub);
     sp<Package> getPackage(const String16& package);
     sp<Type> getType(const String16& package,

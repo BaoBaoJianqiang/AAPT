@@ -56,7 +56,7 @@ ZipFile* openReadOnly(const char* fileName)
 {
     ZipFile* zip;
     status_t result;
-
+    
     zip = new ZipFile;
     result = zip->open(fileName, ZipFile::kOpenReadOnly);
     if (result != NO_ERROR) {

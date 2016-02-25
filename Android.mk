@@ -46,7 +46,9 @@ aaptSources := \
     WorkQueue.cpp \
     ZipEntry.cpp \
     ZipFile.cpp \
+    RMerge.cpp \
     qsort_r_compat.c
+
 
 aaptTests := \
     tests/AaptConfig_test.cpp \

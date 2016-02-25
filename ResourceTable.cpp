@@ -71,12 +71,14 @@ status_t compileXmlFile(const Bundle* bundle,
     if ((options&XML_COMPILE_ASSIGN_ATTRIBUTE_IDS) != 0) {
         status_t err = root->assignResourceIds(assets, table);
         if (err != NO_ERROR) {
+            fprintf(stderr,"assignResourceIds\n");
             hasErrors = true;
         }
     }
 
     status_t err = root->parseValues(assets, table);
     if (err != NO_ERROR) {
+        fprintf(stderr,"parseValues\n");
         hasErrors = true;
     }
 
@@ -85,6 +87,7 @@ status_t compileXmlFile(const Bundle* bundle,
     }
 
     if (table->modifyForCompat(bundle, resourceName, target, root) != NO_ERROR) {
+        fprintf(stderr,"modifyForCompat\n");
         return UNKNOWN_ERROR;
     }
     
@@ -94,6 +97,7 @@ status_t compileXmlFile(const Bundle* bundle,
             (options&XML_COMPILE_STRIP_COMMENTS) != 0,
             (options&XML_COMPILE_STRIP_RAW_VALUES) != 0);
     if (err != NO_ERROR) {
+        fprintf(stderr,"flatten\n");
         return err;
     }
 
@@ -701,7 +705,7 @@ status_t parseAndAddEntry(Bundle* bundle,
     if (bundleProduct == NULL) {
         bundleProduct = "";
     }
-
+    
     if (product.size() != 0) {
         /*
          * If the command-line-specified product is empty, only "default"
@@ -738,12 +742,12 @@ status_t parseAndAddEntry(Bundle* bundle,
             }
         }
     }
-
-    NOISY(printf("Adding resource entry l=%c%c c=%c%c orien=%d d=%d id=%s: %s\n",
-                 config.language[0], config.language[1],
-                 config.country[0], config.country[1],
-                 config.orientation, config.density,
-                 String8(ident).string(), String8(str).string()));
+    ;
+   NOISY(printf("*********Adding resource entry l=%c%c c=%c%c orien=%d d=%d id=%s: %s\n",
+    config.language[0], config.language[1],
+    config.country[0], config.country[1],
+    config.orientation, config.density,
+    String8(ident).string(), String8(str).string()));
 
     err = outTable->addEntry(SourcePos(in->getPrintableSource(), block->getLineNumber()),
                              myPackage, curType, ident, str, &spans, &config,
@@ -1722,25 +1726,94 @@ ResourceTable::ResourceTable(Bundle* bundle, const String16& assetsPackage, Reso
     , mNumLocal(0)
     , mBundle(bundle)
 {
+   
+    
     ssize_t packageId = -1;
+    
     switch (mPackageType) {
         case App:
         case AppFeature:
             packageId = 0x7f;
             break;
-
         case System:
             packageId = 0x01;
             break;
-
         case SharedLibrary:
             packageId = 0x00;
             break;
-
+            
+//        case Voice:
+//            packageId = 0x34;
+//            break;
+//        case Call:
+//            packageId = 0x35;
+//            break;
+//        case Search:
+//            packageId = 0x36;
+//            break;
+//        case Schedule:
+//            packageId = 0x37;
+//            break;
+//        case Train:
+//            packageId = 0x38;
+//            break;
+//        case Destination:
+//            packageId = 0x44;
+//            break;
+//        case Chat:
+//            packageId = 0x46;
+//            break;
+//        case Flight:
+//            packageId = 0x52;
+//            break;
+//        case MyCtrip:
+//            packageId = 0x54;
+//            break;
+//        case Pay:
+//            packageId = 0x55;
+//            break;
+//        case Foundation:
+//            packageId = 0x56;
+//            break;
+//        case Hotel:
+//            packageId = 0x58;
+//            break;
+//        case Container:
+//            packageId = 0x61;
+//            break;
+//        case CustomerService:
+//            packageId = 0x62;
+//            break;
+//        case ThirdParty:
+//            packageId = 0x63;
+//            break;
+//        case Extend1:
+//            packageId = 0x64;
+//            break;
+//        case Extend2:
+//            packageId = 0x65;
+//            break;
+//        case Extend3:
+//            packageId = 0x66;
+//            break;
+//        case Extend4:
+//            packageId = 0x67;
+//            break;
+//        case Extend5:
+//            packageId = 0x68;
+//            break;
+//        case Extend6:
+//            packageId = 0x69;
+//            break;
         default:
             assert(0);
             break;
     }
+    if(!bundle->getApkModule().isEmpty()){
+        android::String8 apkmoduleVal=bundle->getApkModule();
+        packageId=apkStringToInt(apkmoduleVal);
+    }
+    
     sp<Package> package = new Package(mAssetsPackage, packageId);
     mPackages.add(assetsPackage, package);
     mOrderedPackages.add(package);
@@ -1748,6 +1821,51 @@ ResourceTable::ResourceTable(Bundle* bundle, const String16& assetsPackage, Reso
     // Every resource table always has one first entry, the bag attributes.
     const SourcePos unknown(String8("????"), 0);
     getType(mAssetsPackage, String16("attr"), unknown);
+}
+ssize_t ResourceTable::apkStringToInt(const String8& s){
+    size_t i = 0;
+    ssize_t val = 0;
+    size_t len=s.length();
+    if (s[i] < '0' || s[i] > '9') {
+        return -1;
+    }
+    
+    // Decimal or hex?
+    if (s[i] == '0' && s[i+1] == 'x') {
+        i += 2;
+        bool error = false;
+        while (i < len && !error) {
+            val = (val*16) + apkgetHex(s[i], &error);
+            i++;
+        }
+        if (error) {
+            return -1;
+        }
+    } else {
+        while (i < len) {
+            if (s[i] < '0' || s[i] > '9') {
+                return false;
+            }
+            val = (val*10) + s[i]-'0';
+            i++;
+        }
+    }
+    
+    if (i == len) {
+        return val;
+    }
+    return -1;
+}
+uint32_t ResourceTable::apkgetHex(char c, bool* outError){
+    if (c >= '0' && c <= '9') {
+        return c - '0';
+    } else if (c >= 'a' && c <= 'f') {
+        return c - 'a' + 0xa;
+    } else if (c >= 'A' && c <= 'F') {
+        return c - 'A' + 0xa;
+    }
+    *outError = true;
+    return 0;
 }
 
 static uint32_t findLargestTypeIdForPackage(const ResTable& table, const String16& packageName) {
@@ -2118,21 +2236,33 @@ uint32_t ResourceTable::getResId(const String16& package,
     if (rid != 0) {
         if (onlyPublic) {
             if ((specFlags & ResTable_typeSpec::SPEC_PUBLIC) == 0) {
+//                printf("************** RID=0x%08x,[%s:%s:%s] is not 00000, but only Public********\n", name.string(), type.string(), package.string());
                 return 0;
             }
         }
         
         return ResourceIdCache::store(package, type, name, onlyPublic, rid);
     }
-
     sp<Package> p = mPackages.valueFor(package);
-    if (p == NULL) return 0;
+    if (p == NULL){
+        fprintf(stderr,"Package is NULL\n");
+        return 0;
+    }
     sp<Type> t = p->getTypes().valueFor(type);
-    if (t == NULL) return 0;
+    if (t == NULL) {
+        fprintf(stderr,"Type is NULL\n");
+        return 0;
+    }
     sp<ConfigList> c =  t->getConfigs().valueFor(name);
-    if (c == NULL) return 0;
+    if (c == NULL) {
+        fprintf(stderr,"ConfigList is NULL\n");
+        return 0;
+    }
     int32_t ei = c->getEntryIndex();
-    if (ei < 0) return 0;
+    if (ei < 0) {
+        fprintf(stderr,"EntryIndex is NULL\n");
+        return 0;
+    }
 
     return ResourceIdCache::store(package, type, name, onlyPublic,
             getResId(p, t, ei));
@@ -2191,7 +2321,8 @@ bool ResourceTable::isValidResourceName(const String16& s)
     return true;
 }
 
-bool ResourceTable::stringToValue(Res_value* outValue, StringPool* pool,
+bool ResourceTable::stringToValue(Res_value* outValue,
+                                  StringPool* pool,
                                   const String16& str,
                                   bool preserveSpaces, bool coerceType,
                                   uint32_t attrID,
@@ -2199,6 +2330,7 @@ bool ResourceTable::stringToValue(Res_value* outValue, StringPool* pool,
                                   String16* outStr, void* accessorCookie,
                                   uint32_t attrType, const String8* configTypeName,
                                   const ConfigDescription* config)
+
 {
     String16 finalStr;
 
@@ -2220,6 +2352,7 @@ bool ResourceTable::stringToValue(Res_value* outValue, StringPool* pool,
     }
 
     if (!res) {
+        fprintf(stderr,"ResourceTable::stringToValue\n");
         return false;
     }
 

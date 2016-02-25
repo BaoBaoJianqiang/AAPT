@@ -402,7 +402,6 @@ moveon:
         rawString.append(curString);
         outString->setTo(rawString);
     }
-
     return NO_ERROR;
 }
 
@@ -850,11 +849,11 @@ void XMLNode::setAttributeResID(size_t attrIdx, uint32_t resId)
     } else {
         mAttributeOrder.removeItem(e.index);
     }
-    NOISY(printf("Elem %s %s=\"%s\": set res id = 0x%08x\n",
-            String8(getElementName()).string(),
-            String8(mAttributes.itemAt(attrIdx).name).string(),
-            String8(mAttributes.itemAt(attrIdx).string).string(),
-            resId));
+//    printf("******************setAttributeResID:Elem %s %s=\"%s\": set res id = 0x%08x\n",
+//           String8(getElementName()).string(),
+//           String8(mAttributes.itemAt(attrIdx).name).string(),
+//           String8(mAttributes.itemAt(attrIdx).string).string(),
+//           resId);
     mAttributes.editItemAt(attrIdx).nameResId = resId;
     mAttributeOrder.add(resId, attrIdx);
 }
@@ -951,18 +950,26 @@ status_t XMLNode::parseValues(const sp<AaptAssets>& assets,
 {
     bool hasErrors = false;
     
+    bool is_exist_in_base_project = false;
+
     if (getType() == TYPE_ELEMENT) {
         const size_t N = mAttributes.size();
         String16 defPackage(assets->getPackage());
+        
         for (size_t i=0; i<N; i++) {
             attribute_entry& e = mAttributes.editItemAt(i);
             AccessorCookie ac(SourcePos(mFilename, getStartLineNumber()), String8(e.name),
                     String8(e.string));
-            table->setCurrentXmlPos(SourcePos(mFilename, getStartLineNumber()));
+            table->setCurrentXmlPos(SourcePos(mFilename, getStartLineNumber()));            
             if (!assets->getIncludedResources()
                     .stringToValue(&e.value, &e.string,
                                   e.string.string(), e.string.size(), true, true,
                                   e.nameResId, NULL, &defPackage, table, &ac)) {
+                fprintf(stderr,"stringToValue=%s\n",String8(defPackage).string());
+                fprintf(stderr,"Attr %s: type=0x%x, str=%s,  nameResId=%d\n",
+                               String8(e.name).string(), e.value.dataType,
+                        String8(e.string).string(),e.nameResId);
+                        
                 hasErrors = true;
             }
             NOISY(printf("Attr %s: type=0x%x, str=%s\n",
@@ -974,6 +981,7 @@ status_t XMLNode::parseValues(const sp<AaptAssets>& assets,
     for (size_t i=0; i<N; i++) {
         status_t err = mChildren.itemAt(i)->parseValues(assets, table);
         if (err != NO_ERROR) {
+            fprintf(stderr,"mChildren\n");
             hasErrors = true;
         }
     }
@@ -993,31 +1001,80 @@ status_t XMLNode::assignResourceIds(const sp<AaptAssets>& assets,
             const attribute_entry& e = mAttributes.itemAt(i);
             if (e.ns.size() <= 0) continue;
             bool nsIsPublic;
+            
             String16 pkg(getNamespaceResourcePackage(String16(assets->getPackage()), e.ns, &nsIsPublic));
-            NOISY(printf("Elem %s %s=\"%s\": namespace(%s) %s ===> %s\n",
-                    String8(getElementName()).string(),
-                    String8(e.name).string(),
-                    String8(e.string).string(),
-                    String8(e.ns).string(),
-                    (nsIsPublic) ? "public" : "private",
-                    String8(pkg).string()));
-            if (pkg.size() <= 0) continue;
-            uint32_t res = table != NULL
-                ? table->getResId(e.name, &attr, &pkg, &errorMsg, nsIsPublic)
-                : assets->getIncludedResources().
-                    identifierForName(e.name.string(), e.name.size(),
-                                      attr.string(), attr.size(),
-                                      pkg.string(), pkg.size());
+            NOISY(printf("*******Elem for elementName[%s], eName[%s]= eString[\"%s\"]: namespace(%s) %s ===> %s\n",
+                         String8(getElementName()).string(),
+                         String8(e.name).string(),
+                         String8(e.string).string(),
+                         String8(e.ns).string(),
+                         (nsIsPublic) ? "public" : "private",
+                         String8(pkg).string()));
+            
+            if (pkg.size() <= 0)
+                continue;
+            
+            uint32_t res = 0;
+            if (table != NULL) {
+                res = table->getResId(e.name, &attr, &pkg, &errorMsg, nsIsPublic);
+            }
+            else {
+                res = assets->getIncludedResources().
+                identifierForName(e.name.string(), e.name.size(),
+                                  attr.string(), attr.size(),
+                                  pkg.string(), pkg.size());
+            }
+            
+            if(res == 0) {
+                String16 pkg(getNamespaceResourcePackage(String16("ctrip.android.view"), e.ns, &nsIsPublic));
+                res = assets->getIncludedResources().identifierForName(e.name.string(), e.name.size(),
+                                  attr.string(), attr.size(),
+                                  pkg.string(), pkg.size());
+                
+//                printf("find in ctrip.android.viewxxxx,pkg:[%s], name:[%s],attribute:[%s],resid=0x%08x\n", String8(pkg).string(), String8(e.name).string(), String8(attr).string(), res);
+            }
+            
             if (res != 0) {
                 NOISY(printf("XML attribute name %s: resid=0x%08x\n",
                              String8(e.name).string(), res));
                 setAttributeResID(i, res);
-            } else {
+            }
+
+          /**
+            //开始hack，标准流程无法查找到，在ctrip.android.view中查找
+            if (res != 0) {
+                NOISY(printf("XML attribute name %s: resid=0x%08x\n",
+                             String8(e.name).string(), res));
+                setAttributeResID(i, res);
+            }
+            else {
+                String16 pkg(getNamespaceResourcePackage(String16("ctrip.android.view"), e.ns, &nsIsPublic));
+                if (table != NULL) {
+                    nsIsPublic = false; //必须是false
+                    res = table->getResId(e.name, &attr, &pkg, &errorMsg, nsIsPublic);
+                }
+                else {
+                    res = assets->getIncludedResources().
+                    identifierForName(e.name.string(), e.name.size(),
+                                      attr.string(), attr.size(),
+                                      pkg.string(), pkg.size());
+                }
+
+                if (res != 0) {
+                    NOISY(printf("XML attribute name %s: resid=0x%08x\n",
+                                 String8(e.name).string(), res));
+                    setAttributeResID(i, res);
+                }
+            }
+            //end hack
+            **/
+            if (res == 0) {
                 SourcePos(mFilename, getStartLineNumber()).error(
-                        "No resource identifier found for attribute '%s' in package '%s'\n",
-                        String8(e.name).string(), String8(pkg).string());
+                                                                 "No resource identifier found for attribute '%s' in package '%s'\n",
+                                                                 String8(e.name).string(), String8(pkg).string());
                 hasErrors = true;
             }
+
         }
     }
     const size_t N = mChildren.size();

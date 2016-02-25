@@ -74,6 +74,7 @@ void usage(void)
         "        [--feature-of package [--feature-after package]] \\\n"
         "        [raw-files-dir [raw-files-dir] ...] \\\n"
         "        [--output-text-symbols DIR]\n"
+        "        [--apk-module moduleName]\n"
         "\n"
         "   Package the android resources.  It will read assets and resources that are\n"
         "   supplied with the -M -A -S or raw-files-dir arguments.  The -J -P -F and -R\n"
@@ -129,6 +130,8 @@ void usage(void)
         "   -0  specifies an additional extension for which such files will not\n"
         "       be stored compressed in the .apk.  An empty string means to not\n"
         "       compress any files at all.\n"
+        "   --apk-module\n"
+        "       hotel,flight,train,myctrip,train,schedule\n"
         "   --debug-mode\n"
         "       inserts android:debuggable=\"true\" in to the application node of the\n"
         "       manifest, making the application debuggable even on production devices.\n"
@@ -595,7 +598,28 @@ int main(int argc, char* const argv[])
                         goto bail;
                     }
                     bundle.addSplitConfigurations(argv[0]);
-                } else if (strcmp(cp, "-feature-of") == 0) {
+                }
+                else if(strcmp(cp, "-apk-module") == 0){
+                    argc--;
+                    argv++;
+                    if (!argc) {
+                        fprintf(stderr, "ERROR: No argument supplied for '--apk-module' option\n");
+                        wantUsage = true;
+                        goto bail;
+                    }
+                    bundle.setApkModule(argv[0]);
+                }
+                else if(strcmp(cp, "-public-R-path") == 0){
+                    argc--;
+                    argv++;
+                    if (!argc) {
+                        fprintf(stderr, "ERROR: No argument supplied for '--public-R-path' option\n");
+                        wantUsage = true;
+                        goto bail;
+                    }
+                    bundle.setPublicRPath(argv[0]);
+                }
+                else if (strcmp(cp, "-feature-of") == 0) {
                     argc--;
                     argv++;
                     if (!argc) {

@@ -175,6 +175,12 @@ public:
     const android::String8& getFeatureOfPackage() const { return mFeatureOfPackage; }
     void setFeatureAfterPackage(const char* str) { mFeatureAfterPackage = str; }
     const android::String8& getFeatureAfterPackage() const { return mFeatureAfterPackage; }
+    
+    const android::String8& getApkModule() const {return mApkModule;}
+    void setApkModule(const char* str) { mApkModule=str;}
+    
+    const char * getPublicRPath() const {return mPublicRPath;}
+    void setPublicRPath(char* str) { mPublicRPath=str;}
 
     const char*  getManifestMinSdkVersion() const { return mManifestMinSdkVersion; }
     void setManifestMinSdkVersion(const char*  val) { mManifestMinSdkVersion = val; }
@@ -212,7 +218,7 @@ public:
     void setSingleCrunchOutputFile(const char* val) { mSingleCrunchOutputFile = val; }
     bool getBuildSharedLibrary() const { return mBuildSharedLibrary; }
     void setBuildSharedLibrary(bool val) { mBuildSharedLibrary = val; }
-
+    
     /*
      * Set and get the file specification.
      *
@@ -305,6 +311,9 @@ private:
     android::Vector<const char*> mNoCompressExtensions;
     android::Vector<const char*> mAssetSourceDirs;
     android::Vector<const char*> mResourceSourceDirs;
+
+    android::String8 mApkModule;
+    char *mPublicRPath;
 
     android::String8 mFeatureOfPackage;
     android::String8 mFeatureAfterPackage;
