@@ -1115,6 +1115,8 @@ status_t buildResources(Bundle* bundle, const sp<AaptAssets>& assets, sp<ApkBuil
     NOISY(printf("Creating resources for package %s\n",
                  assets->getPackage().string()));
 
+    
+    
     ResourceTable::PackageType packageType = ResourceTable::App;
     if (bundle->getBuildSharedLibrary()) {
         packageType = ResourceTable::SharedLibrary;
@@ -1131,6 +1133,8 @@ status_t buildResources(Bundle* bundle, const sp<AaptAssets>& assets, sp<ApkBuil
     }
 
     NOISY(printf("Found %d included resource packages\n", (int)table.size()));
+    
+    
 
     // Standard flags for compiled XML and optional UTF-8 encoding
     int xmlFlags = XML_COMPILE_STANDARD_RESOURCE;

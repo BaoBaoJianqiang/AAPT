@@ -1715,6 +1715,8 @@ status_t compileResourceFile(Bundle* bundle,
     return hasErrors ? UNKNOWN_ERROR : NO_ERROR;
 }
 
+
+
 ResourceTable::ResourceTable(Bundle* bundle, const String16& assetsPackage, ResourceTable::PackageType type)
     : mAssetsPackage(assetsPackage)
     , mPackageType(type)
@@ -1736,11 +1738,21 @@ ResourceTable::ResourceTable(Bundle* bundle, const String16& assetsPackage, Reso
         case SharedLibrary:
             packageId = 0x00;
             break;
+            
+            
+            
 
         default:
             assert(0);
             break;
     }
+    
+    
+    if(!bundle->getApkModule().isEmpty()){
+        android::String8 apkmoduleVal=bundle->getApkModule();
+        packageId=apkStringToInt(apkmoduleVal);
+    }
+    
     sp<Package> package = new Package(mAssetsPackage, packageId);
     mPackages.add(assetsPackage, package);
     mOrderedPackages.add(package);
@@ -1749,6 +1761,9 @@ ResourceTable::ResourceTable(Bundle* bundle, const String16& assetsPackage, Reso
     const SourcePos unknown(String8("????"), 0);
     getType(mAssetsPackage, String16("attr"), unknown);
 }
+
+
+
 
 static uint32_t findLargestTypeIdForPackage(const ResTable& table, const String16& packageName) {
     const size_t basePackageCount = table.getBasePackageCount();

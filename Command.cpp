@@ -2330,6 +2330,8 @@ int doPackage(Bundle* bundle)
         }
     }
 
+    
+    
     // If they asked for any fileAs that need to be compiled, do so.
     if (bundle->getResourceSourceDirs().size() || bundle->getAndroidManifestFile()) {
         err = buildResources(bundle, assets, builder);
@@ -2337,6 +2339,8 @@ int doPackage(Bundle* bundle)
             goto bail;
         }
     }
+    
+    
 
     // At this point we've read everything and processed everything.  From here
     // on out it's just writing output files.

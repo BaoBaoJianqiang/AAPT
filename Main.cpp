@@ -74,6 +74,7 @@ void usage(void)
         "        [--feature-of package [--feature-after package]] \\\n"
         "        [raw-files-dir [raw-files-dir] ...] \\\n"
         "        [--output-text-symbols DIR]\n"
+        "        [--PLUG-resoure-id moduleName]\n"
         "\n"
         "   Package the android resources.  It will read assets and resources that are\n"
         "   supplied with the -M -A -S or raw-files-dir arguments.  The -J -P -F and -R\n"
@@ -129,6 +130,8 @@ void usage(void)
         "   -0  specifies an additional extension for which such files will not\n"
         "       be stored compressed in the .apk.  An empty string means to not\n"
         "       compress any files at all.\n"
+        "   --PLUG-resoure-id\n"
+        "       restaurant, hotel and so on\n"
         "   --debug-mode\n"
         "       inserts android:debuggable=\"true\" in to the application node of the\n"
         "       manifest, making the application debuggable even on production devices.\n"
@@ -231,7 +234,9 @@ int handleCommand(Bundle* bundle)
     case kCommandDump:         return doDump(bundle);
     case kCommandAdd:          return doAdd(bundle);
     case kCommandRemove:       return doRemove(bundle);
+            
     case kCommandPackage:      return doPackage(bundle);
+    
     case kCommandCrunch:       return doCrunch(bundle);
     case kCommandSingleCrunch: return doSingleCrunch(bundle);
     case kCommandDaemon:       return runInDaemonMode(bundle);
@@ -595,7 +600,16 @@ int main(int argc, char* const argv[])
                         goto bail;
                     }
                     bundle.addSplitConfigurations(argv[0]);
-                } else if (strcmp(cp, "-feature-of") == 0) {
+                } else if(strcmp(cp, "-PLUG-resoure-id") == 0){
+                    argc--;
+                    argv++;
+                    if (!argc) {
+                        fprintf(stderr, "ERROR: No argument supplied for '--PLUG-resoure-id' option\n");
+                        wantUsage = true;
+                        goto bail;
+                    }
+                    bundle.setApkModule(argv[0]);
+                }else if (strcmp(cp, "-feature-of") == 0) {
                     argc--;
                     argv++;
                     if (!argc) {
