@@ -176,6 +176,11 @@ public:
     void setFeatureAfterPackage(const char* str) { mFeatureAfterPackage = str; }
     const android::String8& getFeatureAfterPackage() const { return mFeatureAfterPackage; }
 
+    //pass plugin prefix
+    const android::String8& getApkModule() const {return mApkModule;}
+    void setApkModule(const char* str) { mApkModule=str;}
+
+
     const char*  getManifestMinSdkVersion() const { return mManifestMinSdkVersion; }
     void setManifestMinSdkVersion(const char*  val) { mManifestMinSdkVersion = val; }
     const char*  getMinSdkVersion() const { return mMinSdkVersion; }
